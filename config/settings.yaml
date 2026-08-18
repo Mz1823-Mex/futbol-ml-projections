@@ -1,0 +1,38 @@
+# Configuración del sistema de proyecciones
+
+api:
+  base_url: "https://api.thestatsapi.com/api"
+  # La clave NO va aquí: se lee del Secret THESTATSAPI_KEY (variable de entorno)
+  timeout: 30
+  max_retries: 3
+  sleep_between_requests: 1.5   # segundos entre peticiones (respeta el rate limit)
+
+# Opción A: seguir competiciones completas.
+# Ejecuta el workflow "0. Explorar API" y copia los IDs desde data/raw/competitions.json
+competitions:
+  ids: []     # ejemplo: [8, 564]  <- reemplaza con tus competiciones
+
+# Opción B: seguir equipos concretos (tiene prioridad sobre competiciones)
+teams:
+  ids: []     # ejemplo: [33, 34]   <- IDs de equipos de data/raw/teams_sample.json
+  max_teams: 60   # tope de equipos si no configuras IDs (primera ejecución)
+
+# Mercados a proyectar
+markets:
+  goals: true            # goles esperados por equipo
+  totals: true           # totales (más/menos de la línea)
+  corners: true          # córners
+  shots_on_target: true  # remates al arco
+
+model:
+  rolling_window: 10     # partidos para los promedios móviles
+  min_training_rows: 60  # mínimo de partidos con datos para entrenar un mercado
+  totals_line: 2.5       # línea principal del mercado de totales
+  test_size: 0.2
+  random_state: 42
+
+paths:
+  raw: data/raw
+  processed: data/processed
+  predictions: data/predictions
+  models: models
