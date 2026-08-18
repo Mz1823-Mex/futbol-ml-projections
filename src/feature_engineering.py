@@ -26,7 +26,7 @@ ID_COLUMNS = ["match_id", "date", "home_id", "away_id", "home_name", "away_name"
 # ------------------------------------------------------------------ carga
 def load_matches(raw_dir) -> pd.DataFrame:
     df = pd.read_csv(raw_dir / "matches.csv")
-    df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True)
+    df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True, format="mixed")
     for col in ("home_goals", "away_goals", "home_corners", "away_corners",
                 "home_sot", "away_sot"):
         df[col] = pd.to_numeric(df[col], errors="coerce")

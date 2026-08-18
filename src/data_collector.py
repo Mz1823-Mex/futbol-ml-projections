@@ -203,13 +203,15 @@ def main() -> None:
         logger.warning("No se obtuvieron partidos. Revisa tu plan de TheStatsAPI.")
         return
     matches_df = matches_df.drop_duplicates(subset=["id"])
-    matches_df["date"] = pd.to_datetime(matches_df["date"], errors="coerce", utc=True)
+    matches_df["date"] = pd.to_datetime(matches_df["date"], errors="coerce",
+                                        utc=True, format="mixed")
     matches_df = matches_df.sort_values("date")
 
     csv_path = raw_dir / "matches.csv"
     if csv_path.exists():
         previous = pd.read_csv(csv_path)
-        previous["date"] = pd.to_datetime(previous["date"], errors="coerce", utc=True)
+        previous["date"] = pd.to_datetime(previous["date"], errors="coerce",
+                                          utc=True, format="mixed")
         matches_df = (
             pd.concat([previous, matches_df], ignore_index=True)
             .drop_duplicates(subset=["id"], keep="last")
