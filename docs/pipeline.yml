@@ -1,0 +1,89 @@
+name: "Pipeline ML Fútbol"
+
+# ============================================================
+#  ÚNICO workflow del proyecto. Cópialo en:
+#      .github/workflows/pipeline.yml
+#  Instrucciones paso a paso en docs/GUIA_MOVIL.md
+# ============================================================
+#
+#  Automático (UTC):
+#    06:00 diario   -> actualizar datos
+#    07:00 domingos -> entrenar modelos
+#    09:00 diario   -> generar proyecciones
+#
+#  Manual (pestaña Actions -> Run workflow -> elegir tarea):
+#    explorar | datos | entrenar | predecir | todo
+
+on:
+  schedule:
+    - cron: "0 6 * * *"    # actualizar datos
+    - cron: "0 7 * * 0"    # entrenar modelos (domingos)
+    - cron: "0 9 * * *"    # generar proyecciones
+  workflow_dispatch:
+    inputs:
+      tarea:
+        description: "Qué ejecutar"
+        type: choice
+        default: predecir
+        options:
+          - explorar
+          - datos
+          - entrenar
+          - predecir
+          - todo
+
+permissions:
+  contents: write
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Explorar API (descubrir IDs)
+        if: >
+          github.event_name == 'workflow_dispatch' &&
+          inputs.tarea == 'explorar'
+        env:
+          THESTATSAPI_KEY: ${{ secrets.THESTATSAPI_KEY }}
+        run: python -m src.explorar_api
+
+      - name: Actualizar datos desde TheStatsAPI
+        if: >
+          github.event.schedule == '0 6 * * *' ||
+          (github.event_name == 'workflow_dispatch' &&
+           (inputs.tarea == 'datos' || inputs.tarea == 'todo'))
+        env:
+          THESTATSAPI_KEY: ${{ secrets.THESTATSAPI_KEY }}
+        run: python -m src.data_collector
+
+      - name: Entrenar modelos
+        if: >
+          github.event.schedule == '0 7 * * 0' ||
+          (github.event_name == 'workflow_dispatch' &&
+           (inputs.tarea == 'entrenar' || inputs.tarea == 'todo'))
+        run: python -m src.train
+
+      - name: Generar proyecciones
+        if: >
+          github.event.schedule == '0 9 * * *' ||
+          (github.event_name == 'workflow_dispatch' &&
+           (inputs.tarea == 'predecir' || inputs.tarea == 'todo'))
+        run: python -m src.predict
+
+      - name: Guardar resultados en el repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ models/
+          git diff --staged --quiet || git commit -m "chore: pipeline $(date -u +%Y-%m-%d)"
+          git push
